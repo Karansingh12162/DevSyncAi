@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(cuid())
+  name             String?
+  email            String    @unique
+  emailVerified    Boolean   @default(false)
+  image            String?
+  bio              String?
+  githubId         String?   @unique
+  reputationPoints Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  accounts         Account[]
+  sessions         Session[]
+  ownedProjects    Project[]
+  ideaTickets      IdeaTicket[]
+  discussions      Discussion[]
+  comments         Comment[]
+  projectMemberships UserProject[]
+  ideaMemberships   UserIdea[]
+  collaborationRequests CollaborationRequest[]
+  notifications    Notification[]
+}
+
+model Account {
+  id                   String   @id @default(cuid())
+  userId               String
+  type                 String?
+  providerId           String
+  accountId            String
+  refreshToken         String?  @db.Text
+  accessToken          String?  @db.Text
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                String?
+  idToken              String?  @db.Text
+  password             String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, value])
+}
+
+model Project {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  repoUrl         String   @unique
+  deploymentUrl   String?
+  ownerId         String
+  owner           User     @relation(fields: [ownerId], references: [id])
+  overallScore    Int?
+  codeQuality     Int?
+  documentation   Int?
+  bestPractices   Int?
+  performance     Int?
+  techStack       Json?
+  strengths       Json?
+  suggestions     Json?
+  summary         String?
+  readme          String?
+  status          String   @default("active")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  members         UserProject[]
+  discussions     Discussion[]
+  collaborationRequests CollaborationRequest[]
+  issues          Issue[]
+}
+
+model Issue {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      String   @default("open")
+  priority    String   @default("medium")
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reporterId  String
+  assigneeId  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model UserProject {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String
+  role      String   @default("member")
+  user      User     @relation(fields: [userId], references: [id])
+  project   Project  @relation(fields: [projectId], references: [id])
+
+  @@unique([userId, projectId])
+}
+
+model CollaborationRequest {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String?
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, projectId])
+}
+
+model IdeaTicket {
+  id           String   @id @default(cuid())
+  title        String
+  vision       String
+  requiredRoles Json
+  maxMembers   Int      @default(4)
+  status       String   @default("open")
+  category     String?
+  ownerId      String
+  owner        User     @relation(fields: [ownerId], references: [id])
+  repoUrl      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  members      UserIdea[]
+}
+
+model UserIdea {
+  id     String     @id @default(cuid())
+  userId String
+  ideaId String
+  role   String     @default("member")
+  user   User       @relation(fields: [userId], references: [id])
+  idea   IdeaTicket @relation(fields: [ideaId], references: [id])
+
+  @@unique([userId, ideaId])
+}
+
+model Discussion {
+  id         String    @id @default(cuid())
+  title      String
+  content    String
+  authorId   String
+  author     User      @relation(fields: [authorId], references: [id])
+  projectId  String?
+  project    Project?  @relation(fields: [projectId], references: [id])
+  category   String
+  upvotes    Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  comments   Comment[]
+}
+
+model Comment {
+  id           String     @id @default(cuid())
+  content      String
+  authorId     String
+  author       User       @relation(fields: [authorId], references: [id])
+  discussionId String
+  discussion   Discussion @relation(fields: [discussionId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  notifications Notification[] @relation("CommentNotification")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  comment   Comment? @relation("CommentNotification", fields: [commentId], references: [id], onDelete: SetNull)
+  commentId String?
+}
