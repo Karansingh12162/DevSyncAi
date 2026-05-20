@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # DevSync AI - Developer Collaboration Platform
 
 DevSync AI is a modern web application that helps developers find teammates, collaborate on projects, and get AI-powered code audits. Built with Next.js, Prisma, and Google Gemini AI.
@@ -363,3 +364,7 @@ MIT License
 For issues or questions:
 - Open an issue on GitHub
 - Check existing issues first
+=======
+# DevSyncAi
+MyCollegeproject
+>>>>>>> a0d21ab2a622b51e247f549fd9a1fa0fbf3cb199
